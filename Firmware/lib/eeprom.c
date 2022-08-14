@@ -46,7 +46,7 @@ uint8_t eeprom_read(uint8_t ce, uint16_t addr){
 
     // Enable chip with output enabled and read
     PORTB = (1 << WE) + (0 << OE) + (ce << CE0) + (!ce << CE1);
-    _delay_ms(100);
+    _delay_ms(10);
     return PINC;
 }
 

@@ -20,19 +20,19 @@
 - Psuedo random sequence / LFSR
 
 ## Bit pattern
-Function    15  14  13  12  11  10  9   8   7-0
-Shift right 0   0   0   0   0   x   x   x   input byte  x = shift value
-Shift left  0   0   0   0   1   x   x   x   "           x = shift value
-Set         0   0   0   1   0   x   x   x   "           x = bit position
-Clear       0   0   0   1   1   x   x   x   "           x = bit position
-Rot right   0   0   1   0   0   x   x   x   "           x = shift value
-Rot left    0   0   1   0   1   x   x   x   "           x = shift value
-            0   0   1   1   0   
-            0   0   1   1   1
-Extract     0   1   0   0   0   x   x   x   "           x = bit position
-Invert      0   1   0   0   1   0   0   0   "
-Pop count   0   1   0   0   1   0   0   1   "
-Parity      0   1   0   0   1   0   1   0   "
-!Parity     0   1   0   0   1   0   1   1   "
-Increment   0   1   0   0   1   1   0   0   "
-Decrement   0   1   0   0   1   1   0   1   "
+Function    14  13  12  11  10  9   8   7-0
+Shift right 0   0   0   0   x   x   x   input byte  x = shift value
+Shift left  0   0   0   1   x   x   x   "           x = shift value
+Set         0   0   1   0   x   x   x   "           x = bit position
+Clear       0   0   1   1   x   x   x   "           x = bit position
+Rot right   0   1   0   0   x   x   x   "           x = shift value
+Rot left    0   1   0   1   x   x   x   "           x = shift value
+            0   1   1   0   
+            0   1   1   1
+Extract     1   0   0   0   x   x   x   "           x = bit position
+Invert      1   0   0   1   0   0   0   "
+Pop count   1   0   0   1   0   0   1   "
+Parity      1   0   0   1   0   1   0   "
+!Parity     1   0   0   1   0   1   1   "
+Increment   1   0   0   1   1   0   0   "
+Decrement   1   0   0   1   1   0   1   "

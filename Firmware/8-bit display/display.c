@@ -15,7 +15,7 @@
 uint8_t digits[] = {0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6F,0x77,0x7c,0x39,0x5e,0x79,0x71};
 
 // Invert for common cathode displays (or anode i'm not sure)
-uint8_t invert = 0;
+uint8_t invert = 0xFF;
 
 // Chip select
 uint8_t ce = 0;
@@ -156,30 +156,18 @@ int main(void){
                 uint8_t output = calc_output(mode, digit, value);                
 
                 // Write to EEPROM
-                eeprom_write(ce, addr, output^invert);
-
-                // Check value
-                if (eeprom_read(ce, addr) == output^invert){
-                    // check if value overflows
-                    value++;
-                    if (!value){
-                        break;
-                    }
-                } else {    
+                while (!eeprom_write_verify(ce, addr, output^invert)){
                     prog_led(0);
-                    _delay_ms(50);
+                    _delay_ms(500);
                     prog_led(1);
-                    _delay_ms(50);
-                    continue;            
-                    while(1){
-                        prog_led(0);
-                        _delay_ms(500);
-                        prog_led(1);
-                        _delay_ms(500);
-                    }
+                    _delay_ms(500);
                 }
-                
+                value++;
+                if (!value){
+                    break;
+                }
             }
         }
     }
+    eeprom_finish();
 }

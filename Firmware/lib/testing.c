@@ -5,6 +5,8 @@
 
 struct bus bus;
 
+struct address address;
+
 void bus_init(uint8_t io){
     // Set CLK and RST pins as outputs
     #ifdef BUS_FLIPPED
@@ -14,6 +16,18 @@ void bus_init(uint8_t io){
     bus.rst_ddr = &DDRH;
     bus.clk_pin = 7;
     bus.rst_pin = 6;
+    address.a15_ddr = &DDRB;
+    address.a15_port = &PORTB;
+    address.a15_pin = 6;
+    address.oe_ddr = &DDRK;
+    address.oe_port = &PORTK;
+    address.oe_pin = 6;
+    address.ce0_ddr = &DDRB;
+    address.ce0_port = &PORTB;
+    address.ce0_pin = 4;
+    address.ce1_ddr = &DDRB;
+    address.ce1_port = &PORTB;
+    address.ce1_pin = 5;
     #else
     bus.clk_port = &PORTH;
     bus.clk_ddr = &DDRH;
@@ -21,9 +35,21 @@ void bus_init(uint8_t io){
     bus.rst_ddr = &DDRB;
     bus.clk_pin = 6;
     bus.rst_pin = 7;
+    address.a15_ddr = &DDRK;
+    address.a15_port = &PORTK;
+    address.a15_pin = 6;
+    address.oe_ddr = &DDRB;
+    address.oe_port = &PORTB;
+    address.oe_pin = 6;
+    address.ce0_ddr = &DDRB;
+    address.ce0_port = &PORTB;
+    address.ce0_pin = 5;
+    address.ce1_ddr = &DDRB;
+    address.ce1_port = &PORTB;
+    address.ce1_pin = 4;
     #endif
-    *bus.clk_ddr = (1 << bus.clk_pin);
-    *bus.rst_ddr = (1 << bus.rst_pin);
+    clk_set(0);
+    rst_set(0);
 
     // Enable outputs for control lines
     DDRK = io;
@@ -31,6 +57,7 @@ void bus_init(uint8_t io){
 }
 
 void clk_set(bool state){
+    *bus.clk_ddr |= (1 << bus.clk_pin);
     if (state){
         *bus.clk_port |= (1 << bus.clk_pin);
     } else {
@@ -40,12 +67,48 @@ void clk_set(bool state){
 }
 
 void rst_set(bool state){
+    *bus.rst_ddr |= (1 << bus.rst_pin);
     if (state){
         *bus.rst_port |= (1 << bus.rst_pin);
     } else {
         *bus.rst_port &= ~(1 << bus.rst_pin);
     }
     
+}
+
+void prog_set(bool state){
+    clk_set(state);
+}
+
+void we_set(bool state){
+    rst_set(state);
+}
+
+void oe_set(bool state){
+    *address.oe_ddr |= (1 << address.oe_pin);
+    if (state){
+        *address.oe_port |= (1 << address.oe_pin);
+    } else {
+        *address.oe_port &= ~(1 << address.oe_pin);
+    }
+}
+
+void ce0_set(bool state){
+    *address.ce0_ddr |= (1 << address.ce0_pin);
+    if (state){
+        *address.ce0_port |= (1 << address.ce0_pin);
+    } else {
+        *address.ce0_port &= ~(1 << address.ce0_pin);
+    }
+}
+
+void ce1_set(bool state){
+    *address.ce1_ddr |= (1 << address.ce1_pin);
+    if (state){
+        *address.ce1_port |= (1 << address.ce1_pin);
+    } else {
+        *address.ce1_port &= ~(1 << address.ce1_pin);
+    }
 }
 
 void bus_set(uint8_t value){
@@ -60,7 +123,7 @@ void bus_clear(){
     DDRF = 0;
 }
 
-uint8_t bus_read(uint8_t pin, uint16_t delay){
+uint8_t bus_read(uint8_t pin, uint32_t delay){
     // set bus connector as input
     DDRF = 0;
     // set output pin high
@@ -76,28 +139,24 @@ uint8_t bus_read(uint8_t pin, uint16_t delay){
     return value;
 }
 
-void bus_write(uint8_t pin, uint8_t value, uint16_t delay){
-    // set clk low
-    clk_set(0);
-    // set bus connector as output
-    DDRF = 0xFF;
+void bus_write(uint8_t pin, uint8_t value, uint32_t delay){
     // set input pin high
+    clk_set(0);
     io_set(pin);
-    // set value
-    #ifdef BUS_FLIPPED
-    value = ((value << 1) & 0xAA) + ((value >> 1) & 0x55);
-    #endif
-    PORTF = value;
+    bus_set(value);
+    // set clk low
+    
     _delay_us(delay);
     // Rising edge on clock
     clk_set(1);
     _delay_us(delay);
-    clk_set(0);
-
-    // set bus connector as input
-    DDRF = 0x0;
-    // reset input pin
     io_clear(pin);
+    clk_set(0);
+    
+
+    bus_clear();
+    // reset input pin
+    
 }
 
 void data_set(bool B, uint8_t value){
@@ -147,4 +206,29 @@ inline void io_clear(uint8_t pin){
 
 inline bool io_read(uint8_t pin){
     return (PINK >> pin) & 1;
+}
+
+// Set either low address bytes or upper 7 bits
+void addr_set(bool high, uint8_t value){
+    if (!high){
+        bus_set(value);
+    } else {
+        // Check 7th bit
+        bool a15 = (value >> 6) & 1;
+        #ifdef BUS_FLIPPED
+        value = ((value << 1) & 0xAA) + ((value >> 1) & 0x55);
+        #endif
+        // Cannot set 7th bit if flipped, so set after
+        DDRK |= 0x3F;
+        PORTK &= (0xC0);
+        PORTK |= value;
+
+        *address.a15_ddr |= (1 << address.a15_pin);
+        if (a15){            
+            *address.a15_port |= (1 << address.a15_pin);
+        } else {
+            *address.a15_port &= ~(1 << address.a15_pin);
+        }
+        
+    }
 }

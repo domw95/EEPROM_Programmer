@@ -17,3 +17,7 @@
 *-rescue.lib
 
 *.zip
+
+# Arduino
+*.hex
+*.o
